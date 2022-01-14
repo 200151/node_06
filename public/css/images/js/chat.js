@@ -168,14 +168,54 @@ $(() => {
         addMessage(message)
         updateUserList()
     })
-})
 
-$('.stamp').on('click',()=>{
-    stampList.toggle()
-})
+    //スタンプ表示
+    $('.stamp').on('click', () => {
+        stampList.toggle()
+    })
+    //スタンプ送信
 
-$('.uploadStamp').on('click',(event) =>{
-    const image=new Image()
-    image.src=$(event.target).attr('src')
-    const mime_type = 'image/png'
+    $('.uploadStamp').on('click', (event) => {
+        const image = new Image()
+        image.src = $(event.target).attr('src')
+        const mime_type = 'image/png'
+
+        image.onload = (e) => {
+            const canvas = document.createElement('canvas')
+            canvas.width = image.naturalWidth
+            canvas.height = image.naturalHeight
+            const ctx = canvas.getContext('2d')
+            //キャンバスに選択したスタンプ画像を貼り付け
+            ctx.drawImage(image, 0, 0)
+            //データエンコード
+            const base64 = canvas.toDataURL(mime_type)
+            const data = { user: user, image: base64}
+            //サーバに送信
+            socket.emit('upload_stamp', data)
+        }
+    })
+    //スタンプ受信
+    socket.on('load_stamp', (data) => {
+        createChatImage(data, { width: STAMP_WIDTH })
+    })
+
+    //画像アップロード
+    $('.uploadImage').on('change', (event) => {
+        let file = event.target.files[0]
+        let fileRender = new FileReader()
+        fileRender.readAsDataURL(file)
+        fileRender.onloadend = () => {
+            const data = {
+                image: fileRender.result,
+                user: user,
+            }
+            socket.emit('upload_image', data)
+            $('.uploadImage').val() = ''
+        }
+    })
+    //画像受信
+    socket.on('load_image', (data) => {
+        createChatImage(data, { width: IMAGE_WIDTH })
+    })
+
 })
